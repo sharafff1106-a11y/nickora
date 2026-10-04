@@ -13,7 +13,7 @@ function paper(c: C, side: "L" | "R", page: number, chapter: string) {
   c.fillStyle = "#fffdf7"; c.fillRect(0, 0, TW, TH);
   // faint grain
   for (let i = 0; i < 1400; i++) { c.fillStyle = `rgba(120,110,90,${Math.random() * 0.05})`; c.fillRect(Math.random() * TW, Math.random() * TH, 1.4, 1.4); }
-  c.font = `500 13px ${MONO}`; c.fillStyle = MUTED; c.textBaseline = "alphabetic";
+  c.font = `500 15px ${MONO}`; c.fillStyle = MUTED; c.textBaseline = "alphabetic";
   const head = side === "L" ? "NICKORA" : chapter.toUpperCase();
   c.textAlign = side === "L" ? "left" : "right";
   c.fillText(head.split("").join(" "), side === "L" ? 64 : TW - 64, 58);
@@ -34,13 +34,13 @@ function strike(c: C, x: number, y: number, widths: number[], lh: number) {
   widths.forEach((w, i) => { const yy = y + i * lh - 8; c.beginPath(); c.moveTo(x - 4, yy + 2); c.bezierCurveTo(x + w * 0.3, yy - 3, x + w * 0.7, yy + 4, x + w + 4, yy - 1); c.stroke(); });
 }
 
-function note(c: C, text: string, x: number, y: number, color = BLUE, rot = -0.06, size = 30) {
+function note(c: C, text: string, x: number, y: number, color = BLUE, rot = -0.06, size = 33) {
   c.save(); c.translate(x, y); c.rotate(rot); c.font = `700 ${size}px ${HAND}`; c.fillStyle = color; c.fillText(text, 0, 0); c.restore();
 }
 
-function title(c: C, text: string, y: number, size = 40) { c.font = `${size}px ${SERIF}`; c.fillStyle = INK; c.fillText(text, 64, y); }
-function body(c: C) { c.font = `23px ${SERIF}`; c.fillStyle = INK; }
-function label(c: C, text: string, y: number, color = MUTED) { c.font = `500 12px ${MONO}`; c.fillStyle = color; c.fillText(text.split("").join(" "), 64, y); }
+function title(c: C, text: string, y: number, size = 44) { c.font = `${size}px ${SERIF}`; c.fillStyle = INK; c.fillText(text, 64, y); }
+function body(c: C) { c.font = `26px ${SERIF}`; c.fillStyle = INK; }
+function label(c: C, text: string, y: number, color = MUTED) { c.font = `500 14px ${MONO}`; c.fillStyle = color; c.fillText(text.split("").join(" "), 64, y); }
 
 function check(c: C, x: number, y: number) {
   c.strokeStyle = BLUE; c.lineWidth = 3; c.beginPath(); c.arc(x, y, 22, 0, 6.283); c.stroke();
@@ -59,6 +59,7 @@ function box(c: C, x: number, y: number, w: number, h: number, t: string, fill =
 }
 
 const W = TW - 128;
+const LH = 38;
 
 const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[] = [
   {
@@ -66,21 +67,21 @@ const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[
     left: (c) => {
       paper(c, "L", 12, ""); label(c, "DRAFT 1", 120, RED); title(c, "Why I am applying", 172);
       body(c);
-      let r = wrap(c, "Ever since I was a child I have always been passionate about science and helping people.", 64, 236, W, 34);
-      strike(c, 64, 236, r.lines, 34); note(c, "be specific!", 330, r.end + 6, RED);
-      r = wrap(c, "I want to study at your prestigious university because it is one of the best in the world.", 64, r.end + 52, W, 34);
-      strike(c, 64, r.end - r.lines.length * 34, r.lines, 34); note(c, "why here?", 360, r.end + 6, RED, 0.04);
+      let r = wrap(c, "Ever since I was a child I have always been passionate about science and helping people.", 64, 236, W, LH);
+      strike(c, 64, 236, r.lines, LH); note(c, "be specific!", 330, r.end + 6, RED);
+      r = wrap(c, "I want to study at your prestigious university because it is one of the best in the world.", 64, r.end + 52, W, LH);
+      strike(c, 64, r.end - r.lines.length * LH, r.lines, LH); note(c, "why here?", 360, r.end + 6, RED, 0.04);
       const y = r.end + 56;
-      r = wrap(c, "During my internship I built a model that cut patient waiting times by 18%.", 64, y, W, 34);
+      r = wrap(c, "During my internship I built a model that cut patient waiting times by 18%.", 64, y, W, LH);
       c.strokeStyle = BLUE; c.lineWidth = 2; c.beginPath(); c.ellipse(64 + 230, y + 4, 260, 46, -0.02, 0, 6.283); c.stroke();
       note(c, "start with this →", 250, r.end + 34, BLUE, -0.05, 34);
     },
     right: (c) => {
       paper(c, "R", 13, "Statement of purpose"); label(c, "FINAL", 120, BLUE); title(c, "Why I am applying", 172);
       body(c);
-      let r = wrap(c, "During my internship at a city hospital, I built a scheduling model that cut patient waiting times by 18%.", 64, 236, W, 34);
-      r = wrap(c, "That project showed me how careful data work changes people's days, and it is why I am applying to the MSc in Health Data Science.", 64, r.end + 18, W, 34);
-      r = wrap(c, "The programme's module in operational research matches the problems I want to solve next.", 64, r.end + 18, W, 34);
+      let r = wrap(c, "During my internship at a city hospital, I built a scheduling model that cut patient waiting times by 18%.", 64, 236, W, LH);
+      r = wrap(c, "That project showed me how careful data work changes people's days, and it is why I am applying to the MSc in Health Data Science.", 64, r.end + 18, W, LH);
+      r = wrap(c, "The programme's module in operational research matches the problems I want to solve next.", 64, r.end + 18, W, LH);
       check(c, TW - 100, TH - 130); note(c, "ready to submit", TW - 330, TH - 120, BLUE, -0.04, 30);
     },
   },
@@ -91,7 +92,7 @@ const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[
       body(c);
       let y = 236;
       ["Smith (2019) found that feedback helps students improve.", "Lee (2021) found that peer review is useful.", "Khan (2020) found that students value timely comments."].forEach((t) => {
-        const r = wrap(c, t, 64, y, W, 34); strike(c, 64, y, r.lines, 34); y = r.end + 26;
+        const r = wrap(c, t, 64, y, W, LH); strike(c, 64, y, r.lines, LH); y = r.end + 26;
       });
       note(c, "just summaries...", 70, y + 20, RED, -0.03, 32);
       note(c, "group by THEME", 210, y + 92, BLUE, -0.07, 38);
@@ -105,15 +106,15 @@ const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[
       c.strokeStyle = "#d9d6cc"; c.lineWidth = 1; c.beginPath(); c.moveTo(x0, 252); c.lineTo(TW - 64, 252); c.stroke();
       const marks = [[1, 0, 1], [0, 1, 1], [1, 1, 0]];
       rows.forEach((r, i) => {
-        const y = 300 + i * 56; c.font = `22px ${SERIF}`; c.fillStyle = INK; c.fillText(r, x0, y);
+        const y = 300 + i * 56; c.font = `24px ${SERIF}`; c.fillStyle = INK; c.fillText(r, x0, y);
         marks[i].forEach((m, j) => { c.beginPath(); c.arc(cols[j + 1] + 14, y - 7, 9, 0, 6.283); c.fillStyle = BLUE; c.strokeStyle = BLUE; c.lineWidth = 1.6; m ? c.fill() : c.stroke(); });
         c.strokeStyle = "#ebe8df"; c.beginPath(); c.moveTo(x0, y + 22); c.lineTo(TW - 64, y + 22); c.stroke();
       });
       body(c);
       const y = 500;
       c.fillStyle = "rgba(42,58,209,.14)"; c.fillRect(60, y - 26, 420, 38);
-      body(c); wrap(c, "Gap: no studies of online-only cohorts.", 64, y, W, 34);
-      wrap(c, "This study addresses that gap.", 64, y + 52, W, 34);
+      body(c); wrap(c, "Gap: no studies of online-only cohorts.", 64, y, W, LH);
+      wrap(c, "This study addresses that gap.", 64, y + 52, W, LH);
       check(c, TW - 100, TH - 130);
     },
   },
@@ -139,7 +140,7 @@ const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[
       box(c, 64, 434, 210, 56, "Survey, n = 120"); box(c, 326, 434, 210, 56, "Interviews, n = 12");
       arrow(c, 170, 492, 260, 548); arrow(c, 430, 492, 340, 548);
       box(c, 170, 552, 260, 56, "Analysis", true);
-      body(c); c.font = `21px ${SERIF}`; c.fillStyle = MUTED; wrap(c, "Each choice is justified in section 3.2.", 64, 680, W, 30);
+      body(c); c.font = `23px ${SERIF}`; c.fillStyle = MUTED; wrap(c, "Each choice is justified in section 3.2.", 64, 680, W, 32);
     },
   },
   {
@@ -161,11 +162,11 @@ const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[
       ];
       let y = 236;
       refs.forEach(([a, b, d]) => {
-        c.font = `22px ${SERIF}`; c.fillStyle = INK;
-        const r = wrap(c, a, 64, y, W, 32);
-        c.font = `italic 22px ${SERIF}`; const lastW = r.lines[r.lines.length - 1]; let yy = r.end - 32, xx = 64 + lastW;
-        if (xx + c.measureText(b).width > TW - 64) { yy += 32; xx = 94; }
-        c.fillText(b, xx, yy); xx += c.measureText(b).width; c.font = `22px ${SERIF}`; c.fillText(d, xx, yy);
+        c.font = `24px ${SERIF}`; c.fillStyle = INK;
+        const r = wrap(c, a, 64, y, W, 35);
+        c.font = `italic 24px ${SERIF}`; const lastW = r.lines[r.lines.length - 1]; let yy = r.end - 35, xx = 64 + lastW;
+        if (xx + c.measureText(b).width > TW - 64) { yy += 35; xx = 94; }
+        c.fillText(b, xx, yy); xx += c.measureText(b).width; c.font = `24px ${SERIF}`; c.fillText(d, xx, yy);
         y = yy + 56;
       });
       check(c, TW - 100, TH - 130); note(c, "all consistent", TW - 320, TH - 120, BLUE, -0.04, 30);
@@ -175,9 +176,16 @@ const spreads: { chapter: string; left: (c: C) => void; right: (c: C) => void }[
 
 export const SPREADS = spreads.length;
 
-export function buildTextures() {
-  return spreads.map((s) => {
-    const make = (fn: (c: C) => void) => { const cv = document.createElement("canvas"); cv.width = TW; cv.height = TH; fn(cv.getContext("2d")!); return cv; };
-    return { left: make(s.left), right: make(s.right) };
-  });
+// Draw one spread at `scale`× resolution (drawing code stays in 600×816 page units).
+export function buildSpread(i: number, scale: number) {
+  const s = spreads[i];
+  const make = (fn: (c: C) => void) => {
+    const cv = document.createElement("canvas");
+    cv.width = Math.round(TW * scale); cv.height = Math.round(TH * scale);
+    const c = cv.getContext("2d")!;
+    c.scale(scale, scale);
+    fn(c);
+    return cv;
+  };
+  return { left: make(s.left), right: make(s.right) };
 }

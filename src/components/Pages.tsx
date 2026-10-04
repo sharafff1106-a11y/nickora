@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { buildTextures, SPREADS, TH, TW } from "./pageArt";
+import { buildSpread, SPREADS, TH, TW } from "./pageArt";
 
 // A hardcover book lying open on a desk, drawn in 3D on canvas.
 // Each spread shows a messy draft (left) and the finished page (right). Pages flip on a timer,
@@ -11,8 +11,17 @@ export default function Pages() {
     const c = ref.current!;
     const ctx = c.getContext("2d")!;
     const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-    let tex = buildTextures();
-    document.fonts?.ready.then(() => Promise.all(["700 30px Caveat", "40px 'Instrument Serif'", "12px 'JetBrains Mono'"].map((f) => document.fonts.load(f))).then(() => { tex = buildTextures(); }));
+    // Page images are drawn at the resolution the book is shown at (sharper on large and retina
+    // screens), and only the current and next spreads are kept in memory.
+    let texScale = 1;
+    const cache = new Map<number, ReturnType<typeof buildSpread>>();
+    const spreadTex = (i: number) => {
+      let t = cache.get(i);
+      if (!t) { t = buildSpread(i, texScale); cache.set(i, t); }
+      return t;
+    };
+    const keepOnly = (keep: number[]) => { for (const k of [...cache.keys()]) if (!keep.includes(k)) cache.delete(k); };
+    document.fonts?.ready.then(() => Promise.all(["700 30px Caveat", "40px 'Instrument Serif'", "12px 'JetBrains Mono'"].map((f) => document.fonts.load(f))).then(() => cache.clear()));
 
     let w = 0, h = 0, dpr = 1, raf = 0;
     let yaw = 0, pitch = 0.98, tYaw = 0, tPitch = 0.98;
@@ -36,7 +45,7 @@ export default function Pages() {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); turn(); } };
     c.addEventListener("click", turn); c.addEventListener("keydown", onKey);
 
-    const D = 1.36, SEG = 22, F = 5;
+    const D = 1.36, SEG = 44, F = 5;
     let U = 1, cx = 0, cy = 0;
     const proj = (x: number, y: number, z: number): [number, number] => {
       const cY = Math.cos(yaw), sY = Math.sin(yaw);
@@ -84,12 +93,28 @@ export default function Pages() {
         const bx = (Dd[0] - A[0]) / TH, by = (Dd[1] - A[1]) / TH;
         ctx.setTransform(dpr * ax, dpr * ay, dpr * bx, dpr * by, dpr * (A[0] - ax * tx0), dpr * (A[1] - ay * tx0));
         const lo = Math.max(Math.min(tx0, tx1) - 16, 0), wd = Math.min(Math.abs(tx1 - tx0) + 32, TW - lo);
-        ctx.drawImage(img, lo, 0, wd, TH, lo, 0, wd, TH);
+        const px = img.width / TW;
+        ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high";
+        ctx.drawImage(img, lo * px, 0, wd * px, img.height, lo, 0, wd, TH);
         base();
-        const k = dark(th, s0, face);
-        if (k > 0.004) { ctx.fillStyle = `rgba(30,26,20,${k})`; ctx.fill(); }
         ctx.restore();
+        void th;
       }
+      // Shading in one smooth pass (light, curvature and the gutter), so strips leave no seams.
+      const a = proj(pts[0][0], pts[0][1], 0), b = proj(pts[SEG][0], pts[SEG][1], 0);
+      const ax = b[0] - a[0], ay = b[1] - a[1], len2 = ax * ax + ay * ay || 1;
+      const g = ctx.createLinearGradient(a[0], a[1], b[0], b[1]);
+      let last = 0;
+      for (let i = 0; i <= SEG; i++) {
+        const p = proj(pts[i][0], pts[i][1], 0);
+        const t = Math.min(1, Math.max(last, ((p[0] - a[0]) * ax + (p[1] - a[1]) * ay) / len2));
+        last = t;
+        g.addColorStop(t, `rgba(30,26,20,${Math.max(0, dark(pts[i][2], i / SEG, face)).toFixed(3)})`);
+      }
+      ctx.beginPath();
+      pts.forEach(([x, y], i) => { const q = proj(x, y, -D / 2); i ? ctx.lineTo(...q) : ctx.moveTo(...q); });
+      [...pts].reverse().forEach(([x, y]) => ctx.lineTo(...proj(x, y, D / 2)));
+      ctx.closePath(); ctx.fillStyle = g; ctx.fill();
       ctx.strokeStyle = "rgba(17,19,24,.25)"; ctx.lineWidth = 0.7; ctx.beginPath();
       pts.forEach(([x, y], i) => { const p = proj(x, y, -D / 2); i ? ctx.lineTo(...p) : ctx.moveTo(...p); });
       [...pts].reverse().forEach(([x, y]) => ctx.lineTo(...proj(x, y, D / 2)));
@@ -145,7 +170,10 @@ export default function Pages() {
     const draw = (now: number) => {
       yaw += (tYaw - yaw) * 0.05; pitch += (tPitch - pitch) * 0.05; peek += (peekT - peek) * 0.08;
       if (!reduce && turnStart < 0 && now - lastTurn > IDLE) turn();
-      U = Math.min(w * (w < 600 ? 0.4 : 0.33), h / 2.25); cx = w / 2; cy = h - U * 0.98;
+      U = Math.min(w * (w < 600 ? 0.44 : 0.33), h / (w < 600 ? 2.05 : 2.25)); cx = w / 2; cy = h - U * 0.98;
+      // One page is about U css px wide; draw its image at ~1.3× the device pixels it covers.
+      const want = Math.min(2.5, Math.max(1, (U * dpr * 1.3) / TW));
+      if (Math.abs(want - texScale) / texScale > 0.15) { texScale = want; cache.clear(); }
       base(); ctx.clearRect(0, 0, w, h);
 
       // Desk shadow
@@ -159,7 +187,8 @@ export default function Pages() {
       poly([proj(-cw, cyb, -cz), proj(cw, cyb, -cz), proj(cw, cyb, cz), proj(-cw, cyb, cz)], "#1e2a86");
 
       let p = turnStart < 0 ? 0 : Math.min((now - turnStart) / (reduce ? 1 : TURN), 1);
-      const cur = tex[spread], next = tex[(spread + 1) % SPREADS];
+      const cur = spreadTex(spread), next = spreadTex((spread + 1) % SPREADS);
+      keepOnly([spread, (spread + 1) % SPREADS]);
       const moving = turnStart >= 0 || peek > 0.004;
 
       const R = curve(rightRest, 0.004), Lp = curve(leftRest, 0.004);
